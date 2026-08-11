@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Noticias · Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html">🔥 Momentum</a>
+      <a href="index.html">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html">Acciones Argentina</a>
+      <a href="cedears.html">CEDEARs</a>
+      <a href="macro.html">Macro</a>
+      <a href="noticias.html" class="active">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Noticias — última hora</h1>
+  <p class="page-sub">Ámbito, El Cronista, Yahoo Finance y MarketWatch, etiquetadas contra tu watchlist completa</p>
+
+  <section>
+    <h2><span class="dot"></span>Todos los titulares</h2>
+    <div class="note">Etiquetado automático por coincidencia de texto (nombre de empresa o ticker en el título) — no es análisis de sentimiento ni interpretación editorial, solo detección mecánica de menciones.</div>
+    <div class="news" id="newsBox"></div>
+    <div class="status" id="statusNews">Cargando…</div>
+  </section>
+
+  <footer>
+    Refresco automático cada 90 segundos mientras la pestaña esté abierta (más seguido que el resto del panel, que usa 4 min). Para push real en el milisegundo exacto de una noticia (WebSockets/Socket.io) hace falta un servidor corriendo 24/7 — eso ya no es una página estática gratuita como esta, es un servicio con costo de hosting permanente. Si te interesa esa arquitectura, decime y armamos el paso a un backend real; con este panel, 90s es el límite honesto sin esa infraestructura.
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){ initTopClock(); await loadAll();
+  setInterval(loadAll, 90*1000); // en noticias, refresco más seguido (90s) que el resto del panel
+}
+async function loadAll(){
+  const all = [...WATCHLIST_US.map(([t,n])=>({ticker:t,name:n})), ...WATCHLIST_AR.map(([t,n])=>({ticker:t,name:n}))];
+  await loadNews("newsBox","statusNews",all);
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+checkSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acciones Argentina · Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html">🔥 Momentum</a>
+      <a href="index.html">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html" class="active">Acciones Argentina</a>
+      <a href="cedears.html">CEDEARs</a>
+      <a href="macro.html">Macro</a>
+      <a href="noticias.html">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Líderes argentinos</h1>
+  <p class="page-sub">9 empresas · señal técnica calculada sobre su ADR en dólares (Nueva York)</p>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Por qué en dólares y no en pesos</h2>
+    <div class="note">Estas empresas cotizan en pesos en BYMA, pero también tienen ADR en Nueva York. La señal técnica usa esa serie en dólares porque es la que tiene historial confiable y gratuito. El precio en pesos de BYMA lo seguís en tu bróker o en la hoja "Acciones Argentina" de la planilla de Google Sheets.</div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Rendimiento comparado (base 100)</h2>
+    <div class="chartbox"><canvas id="chartCompareAR"></canvas></div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Señales técnicas</h2>
+    <div class="tblwrap"><table id="tblAR"><thead><tr><th>ADR</th><th>Empresa</th><th>Precio USD</th><th>Var. día</th><th>RVOL</th><th>SMA20</th><th>SMA50</th><th>RSI14</th><th>Señal</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="statusAR">Cargando…</div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Qué son contado inmediato (CI) y 24hs</h2>
+    <div class="note">
+      En BYMA, la misma acción se opera bajo dos modalidades de liquidación: <b>CI (contado inmediato)</b> liquida el mismo día,
+      y <b>24hs</b> liquida al día hábil siguiente. El precio suele ser casi idéntico entre ambas (la diferencia refleja la tasa de interés
+      de un día), pero son órdenes distintas en la pantalla de tu bróker — vas a ver la misma especie duplicada, ej. "GGAL - CI" y "GGAL - 24hs".
+      Esto no es algo que una fuente gratuita publique en vivo (es dato de mercado de BYMA, pago) — se opera directo en tu bróker, no en este panel.
+    </div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Más acciones del panel general (sin ADR)</h2>
+    <div class="note">
+      Estas cotizan solo en pesos en BYMA, sin ADR en Nueva York, así que no hay fuente gratuita con su historial — quedan como referencia
+      de nombre/ticker/sector para buscarlas directo en tu bróker. Pediste 100 acciones locales — llegué a 33 que estoy seguro que el ticker es
+      correcto, y ahí paré: prefiero esto antes que otras 70 con riesgo de estar mal escritas. Si tenés una lista propia de tickers puntuales
+      que te interesa seguir, pasámela y la agrego tal cual.
+    </div>
+    <div class="tblwrap"><table id="tblLocalRef"><thead><tr><th>Ticker</th><th>Empresa</th><th>Sector</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    <h3>Cómo se calculan las señales</h3>
+    Mismo método que en Acciones EE.UU.: puntaje -4 a +4 combinando posición del precio vs. SMA20/SMA50 y nivel de RSI14.
+    ≥3 = Compra fuerte · 1-2 = Compra · 0 = Neutral · -1/-2 = Venta · ≤-3 = Venta fuerte.<br><br>
+    <b>No es una recomendación de inversión.</b> El % junto a la señal es la intensidad con la que se disparó la regla, no una probabilidad de acierto. Además, al ser el ADR y no la acción local, la señal no refleja movimientos que solo pasen en pesos en BYMA (por ejemplo, efectos puros de brecha cambiaria).
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){ initTopClock(); await loadAll();
+  const tb = document.querySelector("#tblLocalRef tbody");
+  tb.innerHTML = LOCAL_AR_REFERENCE.map(([t,n,s])=>`<tr><td>${t}</td><td class="name">${n}</td><td class="name">${s}</td></tr>`).join("");
+}
+async function loadAll(){
+  skeletonRows("#tblAR tbody",9,9);
+  const ar = await buildStockData(WATCHLIST_AR);
+  renderStockTable(ar, "#tblAR tbody", "statusAR", "acciones");
+  renderCompareChart("chartCompareAR", ar);
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+checkSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente — evita que alguien entre por accidente si te agarra el celular, no es seguridad real. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html">🔥 Momentum</a>
+      <a href="index.html" class="active">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html">Acciones Argentina</a>
+      <a href="cedears.html">CEDEARs</a>
+      <a href="macro.html">Macro</a>
+      <a href="noticias.html">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Resumen general</h1>
+  <p class="page-sub">Foto rápida de todo el panel — el detalle de cada bloque está en su propia página.</p>
+
+  <a href="momentum.html" class="alert-banner empty" id="momentumBanner">
+    <span class="icon">⏳</span>
+    <span class="txt">Revisando momentum del watchlist…</span>
+    <span class="go">Ver radar completo →</span>
+  </a>
+
+  <section>
+    <h2><span class="dot"></span>Macro EE.UU.</h2>
+    <div class="grid" id="macroUS"></div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Macro Argentina</h2>
+    <div class="grid" id="macroAR"></div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>Señales del día — top 3 más fuertes</h2>
+    <div class="note">Compra fuerte o venta fuerte según el puntaje técnico. Ver metodología completa en cada página de acciones.</div>
+    <div class="tblwrap"><table id="tblTop"><thead><tr><th>Ticker</th><th>Mercado</th><th>Precio</th><th>Señal</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="statusTop">Cargando…</div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>Últimas noticias</h2>
+    <div class="news" id="newsBox"></div>
+    <div class="status" id="statusNews">Cargando…</div>
+    <div style="margin-top:10px;"><a href="noticias.html" style="color:var(--us);font-family:var(--mono);font-size:11.5px;text-decoration:none;">Ver todas las noticias →</a></div>
+  </section>
+
+  <footer>
+    Datos con ~15-20 min de delay, no aptos para trading intradía. Las señales técnicas son lectura mecánica de precio pasado — no son recomendación de inversión.<br>
+    Refresco automático cada 4 min mientras la pestaña esté abierta. Funciona una vez alojado en hosting real (https), no en la vista previa del chat.
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){ initTopClock(); await loadAll(); }
+
+async function loadAll(){
+  skeletonCards("macroAR",5); skeletonCards("macroUS",4);
+  skeletonRows("#tblTop tbody",4,3);
+  loadMacroAR("macroAR");
+  loadMacroUS("macroUS");
+  const [us, ar] = await Promise.all([buildStockData(WATCHLIST_US), buildStockData(WATCHLIST_AR)]);
+  const all = [...us.map(r=>({...r, market:"EE.UU."})), ...ar.map(r=>({...r, market:"Argentina (ADR)"}))];
+
+  const banner = document.getElementById("momentumBanner");
+  const momActive = all.filter(r=>r.ok && r.mom && r.mom.active);
+  if(momActive.length){
+    banner.classList.remove("empty");
+    banner.querySelector(".icon").textContent = "🔥";
+    banner.querySelector(".txt").innerHTML = `<b>${momActive.length} ticker(s) con momentum activo</b> ahora mismo: ${momActive.slice(0,5).map(r=>r.ticker).join(", ")}${momActive.length>5?"…":""}`;
+  }else{
+    banner.querySelector(".icon").textContent = "💤";
+    banner.querySelector(".txt").textContent = "Sin momentum fuerte en este momento — mercado tranquilo.";
+  }
+
+  const scored = all.filter(r=>r.ok);
+  scored.sort((a,b)=> (b.sig.label.includes("fuerte")?1:0) - (a.sig.label.includes("fuerte")?1:0));
+  const top = scored.filter(r=>r.sig.label.includes("fuerte")).slice(0,6);
+  const toShow = top.length ? top : scored.slice(0,3);
+  const tbody = document.querySelector("#tblTop tbody");
+  tbody.innerHTML = "";
+  toShow.forEach(r=>{
+    const panel = r.market==="EE.UU." ? "cedears" : "acciones";
+    tbody.innerHTML += `<tr class="clickable" onclick="openDetail('${r.ticker}')"><td>${tickerLinkHtml(r.ticker,panel)}</td><td class="name">${r.market}</td><td>${r.price!=null?"$"+r.price.toFixed(2):"—"}</td><td><span class="pill ${r.sig.cls}">${r.sig.label}</span></td></tr>`;
+  });
+  document.getElementById("statusTop").textContent = toShow.length ? `${toShow.length} tickers destacados de ${all.length} en watchlist` : "Sin datos";
+
+  loadNews("newsBox","statusNews",[...WATCHLIST_US.map(([t,n])=>({ticker:t,name:n})), ...WATCHLIST_AR.map(([t,n])=>({ticker:t,name:n}))]);
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+
+checkSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Momentum · Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html" class="active">🔥 Momentum</a>
+      <a href="index.html">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html">Acciones Argentina</a>
+      <a href="cedears.html">CEDEARs</a>
+      <a href="macro.html">Macro</a>
+      <a href="noticias.html">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Radar de momentum</h1>
+  <p class="page-sub">Detecta variaciones fuertes de 5 ruedas + RSI en zona extrema, sobre tu watchlist principal (EE.UU. + líderes argentinos)</p>
+
+  <section>
+    <h2><span class="dot"></span>Cómo se detecta</h2>
+    <div class="note">
+      Puntaje de momentum (0 a 4): +2 si la variación de las últimas 5 ruedas es ≥5% (en cualquier dirección), +1 si es ≥3%;
+      +2 si el RSI(14) está en zona extrema (&lt;25 o &gt;75), +1 si está cerca (&lt;32 o &gt;68). Con puntaje ≥2 se marca
+      <b>"Momentum activo"</b> y la fila titila. No es una señal de compra/venta en sí misma — es una alerta de que algo se está moviendo fuerte,
+      para que investigues por qué (ver la página de Noticias, suele haber un titular relacionado).
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>Tickers con momentum activo ahora</h2>
+    <div class="tblwrap"><table id="tblMomentumActive"><thead><tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Var. 5 ruedas</th><th>RSI14</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="statusActive">Cargando…</div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>Resto del watchlist (sin momentum fuerte)</h2>
+    <div class="tblwrap"><table id="tblMomentumRest"><thead><tr><th>Ticker</th><th>Empresa</th><th>Precio</th><th>Var. 5 ruedas</th><th>RSI14</th><th>Estado</th></tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <footer>
+    Escanea EE.UU. + líderes argentinos (17 tickers) — no el universo completo de 110+ CEDEARs, para no saturar el proxy gratuito con cada refresco.
+    Si querés momentum de algún CEDEAR puntual, andá a su página y hacé click en el ticker para ver el detalle.<br>
+    Esto NO es una recomendación de inversión — es detección mecánica de volatilidad reciente, sin contexto de noticias ni fundamentos.
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){ initTopClock(); await loadAll(); }
+async function loadAll(){
+  skeletonRows("#tblMomentumActive tbody",6,3);
+  skeletonRows("#tblMomentumRest tbody",6,4);
+  const [us, ar] = await Promise.all([buildStockData(WATCHLIST_US), buildStockData(WATCHLIST_AR)]);
+  const all = [...us.map(r=>({...r, panel:"cedears"})), ...ar.map(r=>({...r, panel:"acciones"}))].filter(r=>r.ok && r.mom);
+
+  const active = all.filter(r=>r.mom.active).sort((a,b)=> b.mom.strength - a.mom.strength);
+  const rest = all.filter(r=>!r.mom.active);
+
+  const tbA = document.querySelector("#tblMomentumActive tbody"); tbA.innerHTML = "";
+  active.forEach(r=>{ tbA.innerHTML += rowHtml(r, true); });
+  document.getElementById("statusActive").textContent = active.length ? `${active.length} ticker(s) con momentum activo` : "Sin momentum fuerte en este momento — mercado tranquilo";
+  document.getElementById("statusActive").className = active.length ? "status" : "status";
+
+  const tbR = document.querySelector("#tblMomentumRest tbody"); tbR.innerHTML = "";
+  rest.forEach(r=>{ tbR.innerHTML += rowHtml(r, false); });
+
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+function rowHtml(r, active){
+  const cls = r.mom.direction==="alcista" ? "up" : "down";
+  const arrow = r.mom.direction==="alcista" ? "▲" : "▼";
+  const blinkClass = active ? "blink" : "";
+  const pillCls = active ? (r.mom.direction==="alcista"?"p-buy2":"p-sell2") : "p-neutral";
+  return `<tr class="clickable ${blinkClass}" onclick="openDetail('${r.ticker}')">
+    <td>${tickerLinkHtml(r.ticker, r.panel)}</td><td class="name">${r.name}</td>
+    <td>${r.price!=null?"$"+r.price.toFixed(2):"—"}</td>
+    <td class="${cls}">${arrow} ${r.mom.roc5>=0?"+":""}${r.mom.roc5.toFixed(2)}%</td>
+    <td>${r.r14!=null?r.r14.toFixed(1):"—"}</td>
+    <td><span class="pill ${pillCls}">${active ? "🔥 Momentum "+r.mom.direction : "Sin momentum"}</span></td>
+  </tr>`;
+}
+checkSession();
+</script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CEDEARs · Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html">🔥 Momentum</a>
+      <a href="index.html">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html">Acciones Argentina</a>
+      <a href="cedears.html" class="active">CEDEARs</a>
+      <a href="macro.html">Macro</a>
+      <a href="noticias.html">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Universo CEDEARs</h1>
+  <p class="page-sub" id="pageSub">116 empresas de EE.UU./globales con CEDEAR en BYMA — click en cualquier fila para ver su gráfico</p>
+
+  <section>
+    <h2><span class="dot"></span>Antes de operar</h2>
+    <div class="note">
+      El precio acá es el de la acción subyacente en dólares (Nueva York), no el del CEDEAR en pesos — el CEDEAR se mueve por ese precio
+      más el tipo de cambio implícito y el ratio de conversión de cada especie. Confirmá ratio y precio real del CEDEAR en tu bróker antes de operar.
+      Esta página carga 110+ tickers uno por uno contra una fuente gratuita, así que tarda un poco más que las otras — es esperable.
+    </div>
+    <div class="progress" id="loadProgress">Preparando…</div>
+  </section>
+
+  <section>
+    <h2><span class="dot"></span>Listado completo</h2>
+    <div class="pills" id="filterPills"></div>
+    <div class="tblwrap"><table id="tblCedears"><thead><tr><th>Ticker</th><th>Empresa</th><th>Precio USD</th><th>Var. día</th><th>RVOL</th><th>SMA20</th><th>SMA50</th><th>RSI14</th><th>Señal</th></tr></thead><tbody></tbody></table></div>
+    <div class="status" id="statusCedears"></div>
+  </section>
+
+  <footer>
+    Datos con ~15-20 min de delay. Señales técnicas: mismo método que en las otras páginas (ver hoja Instrucciones de la planilla / página Acciones EE.UU.). No es recomendación de inversión.
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){
+  initTopClock();
+  document.getElementById("pageSub").textContent = `${CEDEARS_UNIVERSE.length} empresas de EE.UU./globales con CEDEAR en BYMA — click en cualquier fila para ver su gráfico`;
+  skeletonRows("#tblCedears tbody",9,12);
+  const prog = document.getElementById("loadProgress");
+  const results = await buildStockData(CEDEARS_UNIVERSE, (i,total,ticker)=>{
+    prog.textContent = `Cargando ${i}/${total} (${ticker})…`;
+  });
+  prog.textContent = `Listo — ${results.filter(r=>r.ok).length} de ${results.length} tickers cargados`;
+  renderStockTable(results, "#tblCedears tbody", "statusCedears", "cedears");
+  renderFilterPills("filterPills", results, (filtered)=> renderStockTable(filtered, "#tblCedears tbody", "statusCedears", "cedears"));
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+function loadAll(){ /* esta página no se auto-refresca cada 4 min por el volumen de tickers — recargá la pestaña si querés datos nuevos */ }
+checkSession();
+</script>
+</body>
+</html>

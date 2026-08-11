@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Macro · Panel de Inversiones Pro</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="mark">Panel de Inversiones Pro · Acceso privado</div>
+  <input id="pin" type="password" inputmode="numeric" maxlength="12" placeholder="••••" autocomplete="off">
+  <button onclick="tryUnlock()">Entrar</button>
+  <div class="err" id="gateErr"></div>
+  <div class="hint">Candado simple del lado del cliente. Para privacidad real, protegé el hosting (Netlify → Password protection).</div>
+</div>
+
+<div id="app">
+  <nav class="top">
+    <div class="brand">Panel<span>Inversiones</span></div>
+    <div class="links">
+      <a href="momentum.html">🔥 Momentum</a>
+      <a href="index.html">Inicio</a>
+      <a href="acciones-eeuu.html">Acciones EE.UU.</a>
+      <a href="acciones-argentina.html">Acciones Argentina</a>
+      <a href="cedears.html">CEDEARs</a>
+      <a href="macro.html" class="active">Macro</a>
+      <a href="noticias.html">Noticias</a>
+    </div>
+    <div id="clock">Última carga: <b id="clock-time">—</b></div>
+  </nav>
+
+  <h1 class="page-title">Panorama macro</h1>
+  <p class="page-sub">Argentina y EE.UU. — los datos sin ticker bursátil (Fed, inflación, BADLAR) se actualizan a mano en la planilla, ver nota al pie</p>
+
+  <section>
+    <h2><span class="dot"></span>EE.UU.</h2>
+    <div class="grid" id="macroUS"></div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Argentina</h2>
+    <div class="grid" id="macroAR"></div>
+  </section>
+
+  <section class="ar">
+    <h2><span class="dot"></span>Dólar — últimos 90 días</h2>
+    <div class="note">Oficial, blue y MEP, valor de venta. Fuente: ArgentinaDatos (histórico público basado en datos del BCRA y casas de cambio).</div>
+    <div class="chartbox"><canvas id="chartDolar"></canvas></div>
+    <div class="status" id="statusDolar">Cargando…</div>
+  </section>
+
+  <footer>
+    Riesgo país, dólar blue/MEP/CCL y S&amp;P Merval no tienen ticker bursátil estándar, así que esta página trae lo que hay API pública gratuita para (dólares y riesgo país). Tasa Fed, inflación INDEC y BADLAR quedan en la planilla de Google Sheets para actualizar a mano cada vez que hay dato nuevo (Fed: 8 veces al año · INDEC: mensual).
+  </footer>
+</div>
+
+<script src="shared.js"></script>
+<script>
+async function initPage(){ initTopClock(); await loadAll(); }
+async function loadAll(){
+  skeletonCards("macroUS",4); skeletonCards("macroAR",5);
+  loadMacroUS("macroUS");
+  loadMacroAR("macroAR");
+  const ok = await loadDolarHistoryChart("chartDolar");
+  document.getElementById("statusDolar").textContent = ok ? "Histórico cargado" : "No se pudo cargar el histórico de dólares";
+  document.getElementById("statusDolar").className = ok ? "status" : "status err";
+  document.getElementById("clock-time").textContent = new Date().toLocaleTimeString("es-AR");
+}
+checkSession();
+</script>
+</body>
+</html>
